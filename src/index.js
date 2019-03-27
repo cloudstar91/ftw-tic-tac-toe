@@ -59,25 +59,21 @@ class Game extends React.Component {
     });
     console.log(this.state.dataAll);
   };
-
   handleClick = i => {
+    debugger;
     const history = this.state.history.slice(0, this.state.stepNumber + 1);
     const current = history[history.length - 1];
     const squares = current.squares.slice();
-    console.log("@@@@@@@");
-    console.log(history);
-    console.log("@@@@@@@");
 
     if (this.state.stepNumber === 0) {
       this.setState({ startTime: Date(Date.now()) });
     }
-
-    squares[i] = this.state.xIsNext ? "X" : "O";
-
-    if (this.calculateWinner(squares)) {
+    if (this.calculateWinner(squares) || squares[i]) {
+      this.setState({ endTime: Date(Date.now()) });
       return;
     }
 
+    squares[i] = this.state.xIsNext ? "X" : "O";
     this.setState({
       history: history.concat([
         {
@@ -87,6 +83,7 @@ class Game extends React.Component {
       stepNumber: history.length,
       xIsNext: !this.state.xIsNext
     });
+    console.log("squares", squares);
   };
 
   jumpTo = step => {
@@ -138,7 +135,6 @@ class Game extends React.Component {
     const myScores = this.state.dataAll.filter(d => d.player === "VA");
     const max = myScores.map(el => el.score).reduce(maxCallback2, -Infinity);
     console.log(max);
-
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = this.calculateWinner(current.squares);
