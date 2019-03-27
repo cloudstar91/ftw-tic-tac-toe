@@ -1,55 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
-
+import Login from "./login";
 import * as serviceWorker from "./serviceWorker";
-
-const Square = ({ onClick, value }) => (
-  <button className="square" onClick={onClick}>
-    {value}
-  </button>
-);
-
-class Board extends React.Component {
-  renderSquare(i) {
-    return (
-      <Square
-        value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
-      />
-    );
-  }
-
-  render() {
-    const winner = this.props.winner;
-    let status;
-    if (winner) {
-      status = "Winner: " + winner;
-    } else {
-      status = "Next player: " + (this.props.xIsNext ? "X" : "O");
-    }
-
-    return (
-      <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
-      </div>
-    );
-  }
-}
+import "bootstrap/dist/css/bootstrap.min.css";
 
 class Game extends React.Component {
   constructor(props) {
@@ -61,18 +15,69 @@ class Game extends React.Component {
         }
       ],
       stepNumber: 0,
-      xIsNext: true
+      xIsNext: true,
+      userID: "",
+      userName: "",
+      isLogin: false,
+      dataAll: [],
+      highestScore: "",
+      player: "",
+
+      endTime: 0,
+      duration: 0,
+      startTime: 0
     };
   }
+  componentDidMount() {
+    this.getScore();
+  }
+
+  handlePost = async () => {
+    let data = new URLSearchParams();
+    data.append("player", "VA");
+    data.append("score", "12");
+    const url = `http://ftw-highscores.herokuapp.com/tictactoe-dev`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: data.toString(),
+      json: true
+    });
+    let json = await response.json();
+    console.log(json);
+  };
+
+  getScore = async () => {
+    const url = `http://ftw-highscores.herokuapp.com/tictactoe-dev`;
+    let resp = await fetch(url);
+    let result = await resp.json();
+    let data = result.items;
+    this.setState({
+      dataAll: data
+    });
+    console.log(this.state.dataAll);
+  };
 
   handleClick = i => {
     const history = this.state.history.slice(0, this.state.stepNumber + 1);
     const current = history[history.length - 1];
     const squares = current.squares.slice();
-    if (this.calculateWinner(squares) || squares[i]) {
+    console.log("@@@@@@@");
+    console.log(history);
+    console.log("@@@@@@@");
+
+    if (this.state.stepNumber === 0) {
+      this.setState({ startTime: Date(Date.now()) });
+    }
+
+    squares[i] = this.state.xIsNext ? "X" : "O";
+
+    if (this.calculateWinner(squares)) {
       return;
     }
-    squares[i] = this.state.xIsNext ? "X" : "O";
+
     this.setState({
       history: history.concat([
         {
@@ -113,7 +118,27 @@ class Game extends React.Component {
     }
     return null;
   };
+
   render() {
+    console.log(this.state.stepNumber);
+    console.log(this.state.startTime);
+    console.log(this.state.endTime);
+    console.log(this.state.duration);
+    const responseFacebook = response => {
+      console.log(response);
+      if (response) {
+        this.setState({ userName: response.name });
+        this.setState({ userID: response.id });
+        this.setState({ isLogin: true });
+      }
+    };
+
+    var maxCallback2 = (max, cur) => Math.max(max, cur);
+
+    const myScores = this.state.dataAll.filter(d => d.player === "VA");
+    const max = myScores.map(el => el.score).reduce(maxCallback2, -Infinity);
+    console.log(max);
+
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = this.calculateWinner(current.squares);
@@ -138,7 +163,12 @@ class Game extends React.Component {
 
     return (
       <div>
-        <h1 className="h1">TIC TAC TOE - TIC TAC TOE</h1>
+        <h1 className="h1">TIC TAC TOE - TIC TAC TOE - TIC TAC TOE</h1>
+        <h5 className="text-white">UserName :{this.state.userName}</h5>
+        <h5 className="text-white">userID:{this.state.userID}</h5>
+        <h5 className="text-white">time start:{this.state.startTime}</h5>
+        <h5 className="text-white">time end:{this.state.endTime}</h5>
+        <h5 className="text-white">time elapse:{this.state.duration}</h5>
         <div className="board">
           <div className="game">
             <div className="game-board">
@@ -152,6 +182,52 @@ class Game extends React.Component {
               <ol className="move">{moves}</ol>
             </div>
           </div>
+        </div>
+        <Login
+          responseFacebook={responseFacebook}
+          isLogin={this.state.isLogin}
+        />
+        <button onClick={() => this.handlePost()}>submit</button>
+        <h3>Display Score:{max}</h3>
+        <h3>Player:{this.state.userName}</h3>
+      </div>
+    );
+  }
+}
+
+const Square = ({ onClick, value }) => (
+  <button className="square" onClick={onClick}>
+    {value}
+  </button>
+);
+
+class Board extends React.Component {
+  renderSquare(i) {
+    return (
+      <Square
+        value={this.props.squares[i]}
+        onClick={() => this.props.onClick(i)}
+      />
+    );
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="board-row">
+          {this.renderSquare(0)}
+          {this.renderSquare(1)}
+          {this.renderSquare(2)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(3)}
+          {this.renderSquare(4)}
+          {this.renderSquare(5)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(6)}
+          {this.renderSquare(7)}
+          {this.renderSquare(8)}
         </div>
       </div>
     );
